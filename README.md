@@ -3,14 +3,21 @@
 ## Pipeline usage
 
 ### Environment preparation
-you can install either install only `torch==1.12` by pip or use conda for full environment clone.
+Base environment you need to install:
+```
+torch==1.12
+logomaker==0.8
+numpy
+pandas
+```
+
+Alternatively, use conda for full environment clone.
 
 ```bash
 conda env create -f env.yml
 conda activate motifNet
 
-python test_env.py
-
+python test_env.py train --seq_len 500 --task binary_classification
 ```
 
 `test_env.py` will tell whether your environment has been installed sucessfully.
@@ -29,6 +36,7 @@ Prepare your sequencing data table with `seq' and 'label' columns:
 
 ```bash
 python main.py train -i data/artificialMotifSeqSet.csv --seq_len 500 --prefix fake_data --task binary_classification
+```
 
 If you want to split train and validation, for example by leaving some chromosomes for validation.
 Simply modify preprocess.py to your needs and provide an extra `-v test.csv`. Otherwise -i input table will be taken as evaluation data.

@@ -10,7 +10,7 @@ import torch
 from torch import nn, optim
 from torch.optim import Adam
 from torch.utils.data import DataLoader
-from datasets.utr_dataset import BaseDataset
+from datasets.custom_dataset import BaseDataset
 
 import argparse
 import utils
@@ -36,24 +36,27 @@ class sinTrainer(baseTrainer):
         self._init_model()
 
     def _init_model(self):
-        self.model = motifNet(self.args.seq_len)
+        self.model = motifNet(self.args)
         self.model = self.model.to(self.device)
         
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.config.lr)
+        
+        if self.args.task == 'regression':
+            self.criterion = nn.MSELoss()
+        elif self.args.task == 'binary_classification':
+            self.criterion = nn.BCELoss()
+        elif self.args.task == 'multi_class':
+            self.criterion = nn.CrossEntropyLoss()
+        else:
+            raise ValueError("Invalid task option. Please choose from 'regression', 'binary_classification', or 'multi_class'.")
 
-        self.criterion = nn.MSELoss()
-        self.criterion_motif = nn.MSELoss()
-
-    def _init_dataloader(self, input_path, seq_len, train=True):
-        df = pd.read_csv(input_path) 
+    def _init_dataloader(self, args, train=True):
 
         if train: 
-            train_dataset = BaseDataset(df, seq_len, train=True)
+            train_dataset = BaseDataset(args, train=True)
             self.train_dataloader = DataLoader(train_dataset, batch_size=self.config.batch_size, shuffle=True, num_workers=8)
-            #self.coords = train_dataset.coords.to(self.device)
 
-        val_df = df.iloc[:1000]
-        val_dataset = BaseDataset(val_df, seq_len, train=False)
+        val_dataset = BaseDataset(args, train=False)
         self.val_dataloader = DataLoader(val_dataset, batch_size=self.config.batch_size, num_workers=4)
 
         if train:
@@ -68,7 +71,7 @@ class sinTrainer(baseTrainer):
         return new_vals
 
     def train(self):
-        self._init_dataloader(self.args.i, self.args.seq_len)
+        self._init_dataloader(self.args)
         model_save_dir = os.path.join(self.config.ckpt, self.__class__.__name__)
 
         for epoch in range(self.config.max_epoch):
@@ -125,16 +128,23 @@ class sinTrainer(baseTrainer):
 
 
 if __name__ == "__main__":
-    
     parser = argparse.ArgumentParser()
     parser.add_argument("command", metavar="<command>", help="train or infer")
-    parser.add_argument("-i", type=str, required=True, default=None, help="the path of model weight file")
-    parser.add_argument("--seq_len", type=int, required=True, default=None, help="the path of model weight file")
+    parser.add_argument("-i", type=str, required=True, help="the path of train table file")
+    parser.add_argument("-v", type=str, required=False, default=None, help="the path of test table file")
+    parser.add_argument("--seq_len", type=int, required=True, help="the path of model weight file")
+    parser.add_argument("--task", type=str, required=True, choices=["binary_classification", 
+                                                                "multi_class",
+                                                                "regression",
+                                                            ], 
+                                                            help="task type")
     parser.add_argument("--prefix", type=str, required=True, default=None, help="output path prefix")
     parser.add_argument("--ckpt", type=str, default=None, help="the path of model weight file")
     parser.add_argument("--seed", type=int, default=None, help="the path of model weight file")
+    parser.add_argument("--seq_colname", type=str, required=False, default='seq', help="sequence column name in csv")
+    parser.add_argument("--label_colname", type=str, required=False, default='label', help="label column name in csv")
+    parser.add_argument("--num_classes", type=int, required=False)
     args = parser.parse_args()
-
 
     if args.seed is not None:
         seed_torch(args.seed)
@@ -148,7 +158,5 @@ if __name__ == "__main__":
     if (args.command == "inference"):
         assert args.ckpt is not None
         trainer.load_ckpt(args.ckpt)
-        #trainer.transfer_ckpt(args.ckpt)
-        
         trainer.inference()
 

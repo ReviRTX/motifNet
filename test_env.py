@@ -17,10 +17,17 @@ import utils
 import time
 import os
 
-model = motifNet()
+seq_len = 512
+model = motifNet(seq_len)
 
-seq = np.random.random((2, 4, 256))
+
+seq = np.random.random((2, 4, seq_len))
 seq = torch.from_numpy(np.float32(seq))
+
+if torch.cuda.is_available():
+    model = model.cuda()
+    seq = seq.cuda()
+
 res = model(seq)
 print(res.shape)
 

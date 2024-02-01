@@ -59,12 +59,11 @@ def draw_motif_logo(kernel, output_filepath, pos_feature, seq_len):
 
     fig.savefig(output_filepath)
 
-def draw_PCA(output_filepath, pca, plot_df):
+def draw_PCA(output_filepath, pca, plot_df, args):
     fig = plt.figure(figsize=(8,6))
     ax = fig.gca()
 
-    h_order = ['not_regulated', 'down_regulated', 'up_regulated']
-    sns.scatterplot(x='PC1', y='PC2', data=plot_df, size='size', hue='glabel', alpha=0.8, hue_order=h_order, ax=ax) 
+    sns.scatterplot(x='PC1', y='PC2', data=plot_df, hue=args.color_by, alpha=0.8, ax=ax) 
 
     PC1_ratio, PC2_ratio = pca.explained_variance_ratio_[:2] * 100
     ax.set_xlabel('PC1 (%.1f' % PC1_ratio + '%)', fontdict={"size": 18})
@@ -72,7 +71,7 @@ def draw_PCA(output_filepath, pca, plot_df):
     ax.set_xlim(plot_df.PC1.min()-1, plot_df.PC1.max() + 1.5)
     ax.set_ylim(plot_df.PC2.min()-1, plot_df.PC2.max() + 1.5)
 
-    handles, labels = ax.get_legend_handles_labels()
-    ax.legend(handles[1:4], labels[1:4], loc='upper right', fontsize=12)
+    #handles, labels = ax.get_legend_handles_labels()
+    #ax.legend(handles[1:4], labels[1:4], loc='upper right', fontsize=12)
     
     fig.savefig(output_filepath, bbox_inches='tight')

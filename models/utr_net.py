@@ -7,12 +7,13 @@ from models.layers import SineLayer
 
 
 class motifNet(nn.Module):
-    def __init__(self, seq_len):
+    def __init__(self, args):
         super(motifNet, self).__init__()
-        
+        self.args = args
+
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.mgrid = torch.linspace(-1, 1, steps=seq_len).to(self.device)
-        self.coords = self.mgrid.view(1, 1, seq_len)
+        self.mgrid = torch.linspace(-1, 1, steps=args.seq_len).to(self.device)
+        self.coords = self.mgrid.view(1, 1, args.seq_len)
 
         filters = 32
         self.layer1 = nn.Sequential(
@@ -48,14 +49,19 @@ class motifNet(nn.Module):
                 #nn.Sigmoid(),
                 )
 
-        self.layer_b = nn.Sequential(
-                #nn.Linear(32, 32),
-                #nn.ReLU(),
-                nn.Linear(32, 1),
-                #nn.Sigmoid(),
-                #nn.Conv1d(32, 32, kernel_size=5, stride=1, padding=2, bias=True),
-                #nn.Conv1d(32, 1, kernel_size=1, stride=1, padding=0, bias=True),
+        if self.args.task == 'regression': 
+            self.layer_b = nn.Linear(32, 1)
+        elif self.args.task == 'binary_classification':
+            self.layer_b = nn.Sequential(
+                    nn.Linear(32, 1),
+                    nn.Sigmoid()
                 )
+        elif self.args.task == 'multi_class':
+            self.layer_b = nn.Sequential(
+                nn.Linear(32, self.num_classes),
+                )
+        else:
+            raise ValueError("Invalid task option. Please choose from 'regression', 'binary_classification', or 'multi_class'.")
         
         self.conv_sin = nn.Sequential(
                 SineLayer(1, 128, is_first=True, omega_0=100.),
